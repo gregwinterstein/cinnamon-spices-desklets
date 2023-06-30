@@ -1,0 +1,8 @@
+{
+    "uuid": "weatherlet@kerplonk.com",
+    "name": "Weatherlet",
+    "description": "A desklet that displays weather data.",
+    "contributors": "Greg Winterstein",
+    "prevent-decorations": true,
+    "multiversion": true
+}
