@@ -1,76 +1,215 @@
 {
-	"top": {
-		"type": "header",
-		"description": "Commands configuration"
-	},
-
+    "top": {
+        "type": "header",
+        "description": "Weatherlet configuration"
+    },
+    "url": {
+        "type": "entry",
+        "default": "https://localhost/weather/",
+        "description": "Weather server URL :",
+        "tooltip": "Weather server URL",
+        "expand-width": true
+    },
     "delay": {
-        "default": 1,
+        "default": 60,
         "type": "spinbutton",
         "min": 1,
-        "max": 1440,
-        "description" : "Update every",
-        "units" : "minutes",
-        "step": 10 
+        "max": 3600,
+        "description": "Update every",
+        "units": "seconds",
+        "step": 10
     },
     "timeout": {
         "default": 30,
         "type": "spinbutton",
         "min": 1,
         "max": 1440,
-        "description" : "Cancel command after",
-        "units" : "seconds",
-        "step": 5 
+        "description": "Cancel command after",
+        "units": "seconds",
+        "step": 5
     },
-    "commands" : {
-        "type" : "list",
-        "description" : "Commands",
-        "columns" : [
-            {"id": "label", "title": "Label", "type": "string"},
-            {"id": "label-align-right", "title": "Align label right", "type": "boolean"},
-            {"id": "command", "title": "Command", "type": "string"},
-            {"id": "command-align-right", "title": "Align command result right", "type": "boolean"}
+    "measureConfigs": {
+        "type": "list",
+        "description": "Measures",
+        "columns": [
+            {
+                "id": "label",
+                "title": "Label",
+                "type": "string"
+            },
+            {
+                "id": "labelAlignRight",
+                "title": "Align label right",
+                "type": "boolean"
+            },
+            {
+                "id": "regex",
+                "title": "Regex Pattern",
+                "type": "string"
+            },
+            {
+                "id": "measureAlignRight",
+                "title": "Align measurement right",
+                "type": "boolean"
+            },
+            {
+                "id": "indent",
+                "title": "Indent",
+                "type": "boolean"
+            },
+            {
+                "id": "smaller",
+                "title": "Smaller",
+                "type": "boolean"
+            },
+            {
+                "id": "isSeparator",
+                "title": "Separator",
+                "type": "boolean"
+            }
         ],
-        "default" : [
+        "default": [
             {
-                "label": "Date: ",
-                "label-align-right": false,
-                "command": "date +\"%A %B %d, %I:%M %p\"",
-                "command-align-right": true
+                "label": "Temperature:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Outside Temperature\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": false
             },
             {
-                "label": "Cinnamon version: ",
-                "label-align-right": false,
-                "command": "cinnamon --version",
-                "command-align-right": true
+                "label": "Wind Chill:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Wind Chill\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": false
             },
             {
-                "label": "Hostname: ",
-                "label-align-right": false,
-                "command": "hostname -I",
-                "command-align-right": true
+                "label": "Humidity:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Outside Humidity\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": false
+            },
+            {
+                "label": "Barometer:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Barometer\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": false
+            },
+            {
+                "label": "Wind:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Wind\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": false
+            },
+            {
+                "label": "Rain Today:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Rain Today\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": false
+            },
+            {
+                "label": "Rain Rate:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Rain Rate\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": true,
+                "smaller": true,
+                "isSeparator": false
+            },
+            {
+                "label": "Radiation:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Radiation\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": false
+            },
+            {
+                "label": "UV Index:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>UV Index\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": false
+            },
+            {
+                "label": "Inside",
+                "labelAlignRight": false,
+                "regex": "",
+                "measureAlignRight": true,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": true
+            },
+            {
+                "label": "Temparature:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Inside Temperature\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": true,
+                "smaller": true,
+                "isSeparator": false
+            },
+            {
+                "label": "Humidity:",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Inside Humidity\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": true,
+                "smaller": true,
+                "isSeparator": false
             }
         ]
     },
-
+    "lastUpdatePattern": {
+        "type": "entry",
+        "default": "\\<p class=\"lastupdate\"\\>([^>]*)\\</p\\>",
+        "description": "Last Update :",
+        "tooltip": "Last Update timestamp pattern",
+        "expand-width": true
+    },
+    "offlinePattern": {
+        "type": "entry",
+        "default": "\\<h2\\>Closed for Cleaning\\</h2\\>",
+        "description": "Offline :",
+        "tooltip": "Offline pattern",
+        "expand-width": true
+    },
     "style-options-separator": {
         "type": "separator"
     },
     "style-options-header": {
         "type": "header",
-        "description" : "Style"
+        "description": "Style"
     },
-
     "font": {
         "type": "fontchooser",
-        "default": "Monospace 15",
+        "default": "Liberation Sans 15",
         "description": "Font"
     },
-    "font-color" : {
-	    "type": "colorchooser",
-	    "default" : "rgb(255,255,255)",
-	    "description" : "Font color",
-	    "tooltip" : "Font color"
+    "font-color": {
+        "type": "colorchooser",
+        "default": "rgb(255,255,255)",
+        "description": "Font color",
+        "tooltip": "Font color"
     },
     "background-color": {
         "type": "colorchooser",
@@ -102,7 +241,7 @@
         "min": 0,
         "max": 200,
         "units": "px",
-        "description" : "Border width",
+        "description": "Border width",
         "step": 1
     }
 }
