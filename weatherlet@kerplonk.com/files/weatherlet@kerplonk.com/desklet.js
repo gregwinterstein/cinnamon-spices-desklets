@@ -1,26 +1,34 @@
+/*
+ * Weatherlet
+ * Copyright 2023 Greg Winterstein
+ * Distributed under the terms of the XXXXXXX
+ *
+ * with inspiration and code help from the following desklets:
+ * - commandResult@ZimiZones
+ * - temperature@swalledge
+ * - ViennaTextBasedWeather@f-istvan
+ * - growattmonitor@jtoberling
+ *
+ */
+
 "use strict";
 /* global imports */
 const Cinnamon = imports.gi.Cinnamon;
 const Desklet = imports.ui.desklet;
-const Gettext = imports.gettext;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
 const Lang = imports.lang;
 const Mainloop = imports.mainloop;
 const Settings = imports.ui.settings;
 const Soup = imports.gi.Soup;
 const St = imports.gi.St;
-const Util = imports.misc.util;
 const uuid = "weatherlet@kerplonk.com";
+const deskletName = 'Weatherlet';
+
+const DESKLET_DIR = imports.ui.deskletManager.deskletMeta[uuid].path;
+imports.searchPath.push(DESKLET_DIR);
+let Decoder = typeof require !== "undefined" ? require("./decoder.js") : imports.ui.deskletManager.desklets[uuid].decoder;
+
 
 var session = new Soup.SessionAsync();
-
-// setTimeout(() => { }, 500);
-Gettext.bindtextdomain(uuid, GLib.get_home_dir() + "/.local/share/locale");
-
-function _(str) {
-    return Gettext.dgettext(uuid, str);
-}
 
 function Weatherlet(metadata, deskletId) {
     this._init(metadata, deskletId);
@@ -48,7 +56,6 @@ Weatherlet.prototype = {
             this.settings.bindProperty(Settings.BindingDirection.IN, "lastUpdatePattern", "lastUpdatePattern", this._onSettingsChanged, null);
             this.settings.bindProperty(Settings.BindingDirection.IN, "offlinePattern", "offlinePattern", this._onSettingsChanged, null);
 
-
             this.settings.bindProperty(Settings.BindingDirection.IN, "font", "font", this._onStyleSettingChanged, null);
             this.settings.bindProperty(Settings.BindingDirection.IN, "font-color", "fontColor", this._onStyleSettingChanged, null);
             this.settings.bindProperty(Settings.BindingDirection.IN, "background-color", "backgroundColor", this._onStyleSettingChanged, null);
@@ -75,7 +82,6 @@ Weatherlet.prototype = {
             return;
         }
         this.settingsChangedInProgress = true;
-        this._log('Starting _onSettingChanged');
 
         if (this.updateId > 0) {
             Mainloop.source_remove(this.updateId);
@@ -84,13 +90,12 @@ Weatherlet.prototype = {
         this._content = new St.BoxLayout({
             vertical: true
         });
-        this._addHeader('');
+        this._addHeader(deskletName);
 
         this._onStyleSettingChanged();
         this.setContent(this._content);
 
         // Set up data object from config object
-        this._log('_onSettingChanged configuring measureData');
         this.measureData.length = 0;
         for (let measureConfig of this.measureConfigs) {
             let measure = {
@@ -103,27 +108,22 @@ Weatherlet.prototype = {
                 isSeparator: measureConfig["isSeparator"]
             };
 
-            this._log('_onSettingChanged: ' + measure.label + " " + measure.regex);
-
             this._addLabel(measure, "Loading...");
             this.measureData.push(measure);
         }
 
-        this._log('_onSettingChanged configuring _footer');
         this._footer.regex = this.lastUpdatePattern;
         this._footer.label = "Last Update:";
-        this._addFooter('Loading...');
+        this._addFooter('');
 
         this._update();
         this.settingsChangedInProgress = false;
-        this._log('Ending _onSettingChanged');
     },
 
     /**
      * Configure display styles from settings
      */
     _onStyleSettingChanged: function () {
-        this._log('Starting _onStyleSettingChanged');
         let fontProperties = this.getCssFont(this.font);
         this._content.style = (fontProperties.names.length === 0 ? "" : ("font-family: " + fontProperties.names.join(", ") + ";\n")) +
             (fontProperties.size === "" ? "" : ("font-size: " + fontProperties.size + "px;\n")) +
@@ -135,7 +135,6 @@ Weatherlet.prototype = {
             "border-color: " + this.getCssColor(this.borderColor, this.backgroundTransparency) + ";\n" +
             "border-radius: 10pt;\n" +
             "padding: 5px 10px;";
-        this._log('Ending _onStyleSettingChanged');
     },
 
     /**
@@ -144,7 +143,6 @@ Weatherlet.prototype = {
      * @returns font properties object with separated values for font names, size, style, & weight
      */
     getCssFont: function (font) {
-        this._log('Starting getCssFont');
         let names = [];
         let namesTmp;
         let fontConfigProperties = font.split(" ");
@@ -154,10 +152,8 @@ Weatherlet.prototype = {
         let defaultFont = "";
 
         // Extract font names
-        this._log('getCssFont extracting font names');
         names.push(fontConfigProperties.join(" ").replace(/,/g, " "));
 
-        this._log('getCssFont getting italic font names');
         namesTmp = [];
         ["italic", "oblique"].forEach(function (item, i) {
             names.forEach(function (item2, i2) {
@@ -174,7 +170,6 @@ Weatherlet.prototype = {
             names.push(item);
         });
 
-        this._log('getCssFont getting font weight names');
         namesTmp = [];
         [
             { weight: "100", names: ["ultra-light", "extra-light"] },
@@ -203,7 +198,6 @@ Weatherlet.prototype = {
             names.push(item);
         });
 
-        this._log('getCssFont getting generic font names');
         [
             { generic: "monospace", names: ["mono", "console"] },
             { generic: "cursive", names: ["brush", "script", "calligraphy", "handwriting"] },
@@ -221,7 +215,6 @@ Weatherlet.prototype = {
             });
         });
 
-        this._log('getCssFont setting fallback default font');
         if (defaultFont === "") {
             defaultFont = "sans-serif";
         }
@@ -249,13 +242,10 @@ Weatherlet.prototype = {
      * @returns CSS color style
      */
     getCssColor: function (color, transparency) {
-        this._log('Starting getCssColor');
         return color.replace(")", "," + (1.0 - transparency) + ")").replace("rgb", "rgba");
     },
 
     onDeskletClicked: function (event) {
-        this._log('Starting onDeskletClicked');
-        // this._update();
     },
 
     onDeskletRemoved: function () {
@@ -268,7 +258,6 @@ Weatherlet.prototype = {
      * Get data and display results
      **/
     _update: function () {
-        this._log('Starting _update');
         this._getWeatherData();
         this.updateId = Mainloop.timeout_add_seconds(this.delay, Lang.bind(this, this._update));
     },
@@ -277,8 +266,6 @@ Weatherlet.prototype = {
      * Get data from this.url
      **/
     _getWeatherData: function () {
-        this._log('Starting _getWeatherData');
-
         var urlCatch = Soup.Message.new('GET', this.url);
         session.queue_message(urlCatch, Lang.bind(this, this._parseData));
     },
@@ -289,27 +276,21 @@ Weatherlet.prototype = {
      * @param {*} message Response to this.url
      */
     _parseData: function (session, message) {
-        this._log('_parseData: Status code: ' + message.status_code);
+        this._log("_parseData: '" + this.url + "' Status code: " + message.status_code);
         let weatherData = null;
         if (message.status_code === 200) {
             weatherData = message.response_body.data.toString();
 
             if (weatherData !== null) {
                 if (this._matchRegexValue(this.offlinePattern, this.weatherData)) {
-                    // Offline
-                    this._log('_parseData: Offline');
-                    this._header.labels.header.set_text("Offline");
+                    this._log('_parseData: ' + this.url + ' is Offline');
+                    this._header.labels.header.set_text(deskletName + ": Offline");
                 } else {
-                    this._log('_parseData: Online');
-                    this._header.labels.header.set_text('');
+                    this._header.labels.header.set_text(deskletName);
 
-                    this._log('_parseData: Setting measure values');
-                    // This is not working
                     for (let measure of this.measureData) {
                         if (!measure.isSeparator && measure.regex !== undefined && measure.regex !== null && measure.regex !== '') {
-                            this._log('_parseData: evaluating ' + measure.label + 'for: ' + measure.regex);
-
-                            let result = this._getRegexValue(measure.regex, weatherData);
+                            let result = Decoder.replaceHtmlEntities(this._getRegexValue(measure.regex, weatherData));
                             measure.labels.label.set_text(measure.label);
                             measure.labels.result.set_text(result === null ? '' : result);
                         }
@@ -317,7 +298,8 @@ Weatherlet.prototype = {
                     this._setFooter(weatherData);
                 }
             } else {
-                this._log('No data to display');
+                this._log('_parseData: ' + this.url + ' is Offline');
+                this._header.labels.header.set_text(deskletName + ": Offline");
             }
         }
     },
@@ -336,12 +318,7 @@ Weatherlet.prototype = {
             let matches = data.match(regex);
             if (matches !== null) {
                 value = matches[1];
-                this._log('_getRegexValue: Pattern matched value: \'' + value + "'");
-            } else {
-                this._log('_getRegexValue: No match for pattern = \'' + pattern + "'");
             }
-        } else {
-            this._log('_getRegexValue: pattern or data is null.');
         }
 
         return value;
@@ -359,8 +336,6 @@ Weatherlet.prototype = {
         if (pattern !== null && data !== null) {
             let regex = new RegExp(pattern, "m");
             matched = regex.test(data);
-        } else {
-            this._log('pattern or data is null.');
         }
 
         return matched;
@@ -372,9 +347,6 @@ Weatherlet.prototype = {
      * @param {*} value Initial value to set on object
      */
     _addLabel: function (measure, value) {
-        this._log('Starting _addLabel');
-
-        // Set correct CSS class for indent/smaller
         let labelClass = measure.labelAlignRight ? "weatherlet-align-right" : "weatherlet-align-left";
         let measureClass = measure.measureAlignRight ? "weatherlet-align-right" : "weatherlet-align-left";
 
@@ -423,7 +395,6 @@ Weatherlet.prototype = {
             this._content.add(box, {
             });
         }
-        this._log('Ending _addLabel');
     },
 
     /**
@@ -431,21 +402,19 @@ Weatherlet.prototype = {
      * @param {*} headerText Initial text to set to header
      */
     _addHeader: function (headerText) {
-        this._log('Starting _addHeader');
         this._header.labels = {
             header: new St.Label({
-                text: headerText
+                text: headerText,
+                style_class: "weatherlet-header"
             })
         };
 
         let box = new St.BoxLayout({});
         box.add(this._header.labels.header, { expand: true });
         this._content.add(box, {});
-        this._log('Ending _addHeader');
     },
 
     _addFooter: function (footerText) {
-        this._log('Starting _addFooter');
         if (this._footer.regex !== undefined && this._footer.regex !== null && this._footer.regex !== '') {
             this._footer.labels = {
                 label: new St.Label({
@@ -463,7 +432,6 @@ Weatherlet.prototype = {
             box.add(this._footer.labels.result, { expand: true });
             this._content.add(box, {});
         }
-        this._log('Ending _addFooter');
     },
 
     /**
@@ -471,13 +439,11 @@ Weatherlet.prototype = {
      * @param {*} data Data to parse
      */
     _setFooter: function (data) {
-        this._log('Starting _setFooter');
         if (this._footer.regex !== undefined && this._footer.regex !== null && this._footer.regex !== '') {
             let result = this._getRegexValue(this._footer.regex, data);
             this._footer.labels.label.set_text(this._footer.label);
             this._footer.labels.result.set_text(result === null ? '' : result);
         }
-        this._log('Ending _setFooter');
     },
 
     /**
@@ -485,7 +451,7 @@ Weatherlet.prototype = {
      * @param {*} message Message to log
      */
     _log: function (message) {
-        global.log('[Weatherlet] ' + message);
+        global.log('[' + deskletName + '] ' + message);
     }
 };
 
