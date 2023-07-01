@@ -19,15 +19,6 @@
         "units": "seconds",
         "step": 10
     },
-    "timeout": {
-        "default": 30,
-        "type": "spinbutton",
-        "min": 1,
-        "max": 1440,
-        "description": "Cancel command after",
-        "units": "seconds",
-        "step": 5
-    },
     "measureConfigs": {
         "type": "list",
         "description": "Measures",
@@ -38,18 +29,13 @@
                 "type": "string"
             },
             {
-                "id": "labelAlignRight",
-                "title": "Align label right",
+                "id": "isSeparator",
+                "title": "Separator",
                 "type": "boolean"
             },
             {
-                "id": "regex",
-                "title": "Regex Pattern",
-                "type": "string"
-            },
-            {
-                "id": "measureAlignRight",
-                "title": "Align measurement right",
+                "id": "labelAlignRight",
+                "title": "Align label right",
                 "type": "boolean"
             },
             {
@@ -63,65 +49,88 @@
                 "type": "boolean"
             },
             {
-                "id": "isSeparator",
-                "title": "Separator",
+                "id": "measureAlignRight",
+                "title": "Align measurement right",
                 "type": "boolean"
+            },
+            {
+                "id": "regex",
+                "title": "Regex Pattern",
+                "type": "string"
             }
         ],
         "default": [
             {
                 "label": "Temperature:",
+                "isSeparator": false,
                 "labelAlignRight": false,
-                "regex": "\\<td class=\"label\"\\>Outside Temperature\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
-                "measureAlignRight": true,
                 "indent": false,
                 "smaller": false,
-                "isSeparator": false
+                "measureAlignRight": true,
+                "regex": "\\<td class=\"label\"\\>Outside Temperature\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>"
             },
             {
                 "label": "Wind Chill:",
+                "isSeparator": false,
                 "labelAlignRight": false,
-                "regex": "\\<td class=\"label\"\\>Wind Chill\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "indent": true,
+                "smaller": true,
                 "measureAlignRight": true,
-                "indent": false,
-                "smaller": false,
+                "regex": "\\<td class=\"label\"\\>Wind Chill\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>"
+            },
+            {
+                "label": "Dew Point",
+                "labelAlignRight": false,
+                "regex": "\\<td class=\"label\"\\>Dew Point\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
+                "measureAlignRight": true,
+                "indent": true,
+                "smaller": true,
                 "isSeparator": false
+            },
+            {
+                "label": "Heat Index",
+                "isSeparator": false,
+                "labelAlignRight": false,
+                "indent": true,
+                "smaller": true,
+                "measureAlignRight": true,
+                "regex": "\\<td class=\"label\"\\>Heat Index\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>"
             },
             {
                 "label": "Humidity:",
+                "isSeparator": false,
                 "labelAlignRight": false,
-                "regex": "\\<td class=\"label\"\\>Outside Humidity\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
-                "measureAlignRight": true,
                 "indent": false,
                 "smaller": false,
-                "isSeparator": false
+                "measureAlignRight": true,
+                "regex": "\\<td class=\"label\"\\>Outside Humidity\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>"
             },
             {
                 "label": "Barometer:",
+                "isSeparator": false,
                 "labelAlignRight": false,
-                "regex": "\\<td class=\"label\"\\>Barometer\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
-                "measureAlignRight": true,
                 "indent": false,
                 "smaller": false,
-                "isSeparator": false
+                "measureAlignRight": true,
+                "regex": "\\<td class=\"label\"\\>Barometer\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>"
             },
             {
                 "label": "Wind:",
+                "isSeparator": false,
                 "labelAlignRight": false,
-                "regex": "\\<td class=\"label\"\\>Wind\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
-                "measureAlignRight": true,
                 "indent": false,
                 "smaller": false,
-                "isSeparator": false
+                "measureAlignRight": true,
+                "regex": "\\<td class=\"label\"\\>Wind\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>"
             },
             {
                 "label": "Rain Today:",
+                "isSeparator": false,
                 "labelAlignRight": false,
-                "regex": "\\<td class=\"label\"\\>Rain Today\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>",
-                "measureAlignRight": true,
                 "indent": false,
                 "smaller": false,
-                "isSeparator": false
+                "measureAlignRight": true,
+                "regex": "\\<td class=\"label\"\\>Rain Today\\</td\\>\\s*\\<td class=\"data\"\\>([^>]*)\\</td\\>"
             },
             {
                 "label": "Rain Rate:",
@@ -151,10 +160,19 @@
                 "isSeparator": false
             },
             {
+                "label": "",
+                "labelAlignRight": false,
+                "regex": "",
+                "measureAlignRight": false,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": true
+            },
+            {
                 "label": "Inside",
                 "labelAlignRight": false,
                 "regex": "",
-                "measureAlignRight": true,
+                "measureAlignRight": false,
                 "indent": false,
                 "smaller": false,
                 "isSeparator": true
@@ -176,6 +194,15 @@
                 "indent": true,
                 "smaller": true,
                 "isSeparator": false
+            },
+            {
+                "label": "",
+                "labelAlignRight": false,
+                "regex": "",
+                "measureAlignRight": false,
+                "indent": false,
+                "smaller": false,
+                "isSeparator": true
             }
         ]
     },
@@ -202,19 +229,19 @@
     },
     "font": {
         "type": "fontchooser",
-        "default": "Liberation Sans 15",
+        "default": "Liberation Sans 16",
         "description": "Font"
     },
     "font-color": {
         "type": "colorchooser",
-        "default": "rgb(255,255,255)",
+        "default": "rgb(200,200,200)",
         "description": "Font color",
         "tooltip": "Font color"
     },
     "background-color": {
         "type": "colorchooser",
         "indent": true,
-        "default": "rgb(0,0,0)",
+        "default": "rgb(150,150,150)",
         "description": "Background color",
         "tooltip": "Click to select the background color"
     },
@@ -231,13 +258,13 @@
     "border-color": {
         "type": "colorchooser",
         "indent": true,
-        "default": "rgb(255,255,255)",
+        "default": "rgb(185,185,185)",
         "description": "Border color",
         "tooltip": "Click to select the border color"
     },
     "border-width": {
         "type": "spinbutton",
-        "default": 2,
+        "default": 1,
         "min": 0,
         "max": 200,
         "units": "px",
