@@ -1,7 +1,34 @@
-.command-result-label-align-left {
+.weatherlet-align-left {
     text-align: left;
+    width: 150px;
 }
 
-.command-result-label-align-right {
+.weatherlet-align-right {
     text-align: right;
+    font-weight: bolder;
+}
+
+.weatherlet-align-left-smaller {
+    text-align: left;
+    font-size: 80%;
+    width: 150px;
+}
+
+.weatherlet-align-right-smaller {
+    text-align: right;
+    font-size: 80%;
+    font-weight: bolder;
+}
+
+.weatherlet-align-left-indent {
+    text-align: left;
+    margin-left: 15px;
+    width: 150px;
+}
+
+.weatherlet-align-left-indent-smaller {
+    text-align: left;
+    margin-left: 15px;
+    font-size: 80%;
+    width: 150px;
 }
