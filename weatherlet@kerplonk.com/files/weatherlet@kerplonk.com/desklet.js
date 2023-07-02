@@ -276,7 +276,6 @@ Weatherlet.prototype = {
      * @param {*} message Response to this.url
      */
     _parseData: function (session, message) {
-        this._log("_parseData: '" + this.url + "' Status code: " + message.status_code);
         let weatherData = null;
         if (message.status_code === 200) {
             weatherData = message.response_body.data.toString();
@@ -298,7 +297,8 @@ Weatherlet.prototype = {
                     this._setFooter(weatherData);
                 }
             } else {
-                this._log('_parseData: ' + this.url + ' is Offline');
+                this._log("_parseData: '" + this.url + "' Status code: " + message.status_code);
+                this._log('_parseData: Setting Offline');
                 this._header.labels.header.set_text(deskletName + ": Offline");
             }
         }
