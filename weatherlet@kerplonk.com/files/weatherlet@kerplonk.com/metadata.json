@@ -4,5 +4,6 @@
     "description": "A desklet that displays weather data.",
     "contributors": "Greg Winterstein",
     "prevent-decorations": true,
-    "multiversion": true
+    "multiversion": true,
+    "version": "1.1"
 }
