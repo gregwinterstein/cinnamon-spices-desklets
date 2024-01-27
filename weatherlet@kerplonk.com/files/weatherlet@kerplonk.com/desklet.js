@@ -300,12 +300,9 @@ Weatherlet.prototype = {
      **/
     _getWeatherData: function () {
         var message = Soup.Message.new('GET', this.url);
-        _log('Soup.MAJOR_VERSION: ' + Soup.MAJOR_VERSION);
         if (Soup.MAJOR_VERSION === 2) {
-            _log('Old Soup version');
             session.queue_message(message, Lang.bind(this, this._parseMessage));
         } else {
-            _log('New Soup version');
             session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, Lang.bind(this, function(session, response) {
                 try {
                     var bytes = session.send_and_read_finish(response);
@@ -340,10 +337,8 @@ Weatherlet.prototype = {
      * @param {*} data Data to parse for values based on this.measureData
      */
     _parseData: function (data) {
-        _log('Starting _parseData');
         this.weatherData = data;
 
-        _log('Validating weatherData');
         if (this.weatherData !== null) {
             if (this._matchRegexValue(this.offlinePattern, this.weatherData)) {
                 _log('_parseData: ' + this.url + ' is Offline');
