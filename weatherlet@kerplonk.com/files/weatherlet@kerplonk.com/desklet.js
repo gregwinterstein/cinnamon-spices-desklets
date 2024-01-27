@@ -1,6 +1,6 @@
 /*
  * Weatherlet
- * Copyright 2023 Greg Winterstein
+ * Copyright 2024 Greg Winterstein
  * Distributed under the terms of the XXXXXXX
  *
  * with inspiration and code help from the following desklets:
@@ -13,12 +13,13 @@
 
 "use strict";
 /* global imports */
-const Cinnamon = imports.gi.Cinnamon;
 const Desklet = imports.ui.desklet;
 const Lang = imports.lang;
 const Mainloop = imports.mainloop;
 const Settings = imports.ui.settings;
 const Soup = imports.gi.Soup;
+const GLib = imports.gi.GLib;
+const ByteArray = imports.byteArray;
 const St = imports.gi.St;
 const uuid = "weatherlet@kerplonk.com";
 const deskletName = 'Weatherlet';
@@ -27,25 +28,49 @@ const DESKLET_DIR = imports.ui.deskletManager.deskletMeta[uuid].path;
 imports.searchPath.push(DESKLET_DIR);
 let Decoder = typeof require !== "undefined" ? require("./decoder.js") : imports.ui.deskletManager.desklets[uuid].decoder;
 
+var session;
+if (Soup.MAJOR_VERSION === 2) {
+    session = new Soup.SessionAsync();
+} else {
+    session = new Soup.Session();
+}
+  
 
-var session = new Soup.SessionAsync();
+/**
+ * Log messages with identifying prefix
+ * @param {*} message Message to log
+ */
+function _log(message) {
+    global.log('[' + deskletName + '] ' + message);
+}
 
+
+/**
+ * Main Desklet method, calls init
+ * @param {*} metadata 
+ * @param {*} deskletId 
+ */
 function Weatherlet(metadata, deskletId) {
     this._init(metadata, deskletId);
 }
 
+/**
+ * Weatherlet definition
+ */
 Weatherlet.prototype = {
     __proto__: Desklet.Desklet.prototype,
 
     _init(metadata, deskletId) {
         Desklet.Desklet.prototype._init.call(this, metadata, deskletId);
 
-        this._log('Starting init');
+        _log('Starting init');
+        
         this.updateId = null;
         this.settingsChangedInProgress = false;
         this.measureData = [];
         this._header = new St.BoxLayout({});
         this._footer = new St.BoxLayout({});
+        this._headerText = deskletName;
 
         try {
             this.settings = new Settings.DeskletSettings(this, this.metadata["uuid"], this.instance_id);
@@ -53,8 +78,10 @@ Weatherlet.prototype = {
             this.settings.bindProperty(Settings.BindingDirection.IN, "url", "url", this._onSettingChanged, null);
             this.settings.bindProperty(Settings.BindingDirection.IN, "delay", "delay", this._onSettingChanged, null);
             this.settings.bindProperty(Settings.BindingDirection.IN, "measureConfigs", "measureConfigs", this._onSettingChanged, null);
-            this.settings.bindProperty(Settings.BindingDirection.IN, "lastUpdatePattern", "lastUpdatePattern", this._onSettingsChanged, null);
-            this.settings.bindProperty(Settings.BindingDirection.IN, "offlinePattern", "offlinePattern", this._onSettingsChanged, null);
+            this.settings.bindProperty(Settings.BindingDirection.IN, "lastUpdatePattern", "lastUpdatePattern", this._onSettingChanged, null);
+            this.settings.bindProperty(Settings.BindingDirection.IN, "offlinePattern", "offlinePattern", this._onSettingChanged, null);
+            this.settings.bindProperty(Settings.BindingDirection.IN, "showHeader", "showHeader", this._onSettingChanged, null);
+            this.settings.bindProperty(Settings.BindingDirection.IN, "headerText", "headerText", this._onSettingChanged, null);
 
             this.settings.bindProperty(Settings.BindingDirection.IN, "font", "font", this._onStyleSettingChanged, null);
             this.settings.bindProperty(Settings.BindingDirection.IN, "font-color", "fontColor", this._onStyleSettingChanged, null);
@@ -68,7 +95,7 @@ Weatherlet.prototype = {
         }
 
         this._onSettingChanged();
-        this._log('Ending init');
+        _log('Ending init');
     },
 
     /**
@@ -90,7 +117,13 @@ Weatherlet.prototype = {
         this._content = new St.BoxLayout({
             vertical: true
         });
-        this._addHeader(deskletName);
+
+        if (this.headerText != '') {
+            this._headerText = this.headerText;
+        }
+        if (this.showHeader) {
+            this._addHeader(deskletName);
+        }
 
         this._onStyleSettingChanged();
         this.setContent(this._content);
@@ -266,40 +299,75 @@ Weatherlet.prototype = {
      * Get data from this.url
      **/
     _getWeatherData: function () {
-        var urlCatch = Soup.Message.new('GET', this.url);
-        session.queue_message(urlCatch, Lang.bind(this, this._parseData));
+        var message = Soup.Message.new('GET', this.url);
+        _log('Soup.MAJOR_VERSION: ' + Soup.MAJOR_VERSION);
+        if (Soup.MAJOR_VERSION === 2) {
+            _log('Old Soup version');
+            session.queue_message(message, Lang.bind(this, this._parseMessage));
+        } else {
+            _log('New Soup version');
+            session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, Lang.bind(this, function(session, response) {
+                try {
+                    var bytes = session.send_and_read_finish(response);
+                    if (message.get_status() === 200) {
+                        this._parseData(ByteArray.toString(bytes.get_data()));
+                    } else {
+                        _log("Weather request failed with status: " + message.get_status());
+                    }
+                  } catch (e) {
+                    _log('Caught exception handling send_and_receive: ' + e);
+                  }
+       
+            }));
+        }
     },
 
     /**
-     * Callback for _getWeatherData to parse data and update display
+     * Callback for _getWeatherData to parse data and update display to handle older Soup
      * @param {*} session Global session object (not used, but part of callback signature)
      * @param {*} message Response to this.url
      */
-    _parseData: function (session, message) {
-        let weatherData = null;
+    _parseMessage: function (session, message) {
         if (message.status_code === 200) {
-            weatherData = message.response_body.data.toString();
+            this._parseData(message.response_body.data.toString());
+        } else {
+            _log(" failed with status: " + message.status_code);
+        }
+    },
 
-            if (weatherData !== null) {
-                if (this._matchRegexValue(this.offlinePattern, this.weatherData)) {
-                    this._log('_parseData: ' + this.url + ' is Offline');
-                    this._header.labels.header.set_text(deskletName + ": Offline");
-                } else {
-                    this._header.labels.header.set_text(deskletName);
+    /**
+     * Parse data and set values
+     * @param {*} data Data to parse for values based on this.measureData
+     */
+    _parseData: function (data) {
+        _log('Starting _parseData');
+        this.weatherData = data;
 
-                    for (let measure of this.measureData) {
-                        if (!measure.isSeparator && measure.regex !== undefined && measure.regex !== null && measure.regex !== '') {
-                            let result = Decoder.replaceHtmlEntities(this._getRegexValue(measure.regex, weatherData));
-                            measure.labels.label.set_text(measure.label);
-                            measure.labels.result.set_text(result === null ? '' : result);
-                        }
-                    }
-                    this._setFooter(weatherData);
+        _log('Validating weatherData');
+        if (this.weatherData !== null) {
+            if (this._matchRegexValue(this.offlinePattern, this.weatherData)) {
+                _log('_parseData: ' + this.url + ' is Offline');
+                if (this.showHeader) {
+                    this._header.labels.header.set_text(this._headerText + ": Offline");
                 }
             } else {
-                this._log("_parseData: '" + this.url + "' Status code: " + message.status_code);
-                this._log('_parseData: Setting Offline');
-                this._header.labels.header.set_text(deskletName + ": Offline");
+                if (this.showHeader) {
+                    this._header.labels.header.set_text(this._headerText);
+                }
+
+                for (let measure of this.measureData) {
+                    if (!measure.isSeparator && measure.regex !== undefined && measure.regex !== null && measure.regex !== '') {
+                        let result = Decoder.replaceHtmlEntities(this._getRegexValue(measure.regex, this.weatherData));
+                        measure.labels.label.set_text(measure.label);
+                        measure.labels.result.set_text(result === null ? '' : result);
+                    }
+                }
+                this._setFooter(this.weatherData);
+            }
+        } else {
+            _log('_parseData: Setting Offline');
+            if (this.showHeader) {
+                this._header.labels.header.set_text(this._headerText + ": Offline");
             }
         }
     },
@@ -398,7 +466,7 @@ Weatherlet.prototype = {
     },
 
     /**
-     * Set up header to display data_setFooter
+     * Set up header to display headerText
      * @param {*} headerText Initial text to set to header
      */
     _addHeader: function (headerText) {
@@ -414,6 +482,10 @@ Weatherlet.prototype = {
         this._content.add(box, {});
     },
 
+    /**
+     * Set up footer to display footerText
+     * @param {*} footerText Initial text to set to footer
+     */
     _addFooter: function (footerText) {
         if (this._footer.regex !== undefined && this._footer.regex !== null && this._footer.regex !== '') {
             this._footer.labels = {
@@ -444,17 +516,15 @@ Weatherlet.prototype = {
             this._footer.labels.label.set_text(this._footer.label);
             this._footer.labels.result.set_text(result === null ? '' : result);
         }
-    },
-
-    /**
-     * Log messages with identifying prefix
-     * @param {*} message Message to log
-     */
-    _log: function (message) {
-        global.log('[' + deskletName + '] ' + message);
     }
 };
 
+/**
+ * Main entry point to desklet
+ * @param {*} metadata 
+ * @param {*} deskletId 
+ * @returns 
+ */
 function main(metadata, deskletId) {
     return new Weatherlet(metadata, deskletId);
 }
