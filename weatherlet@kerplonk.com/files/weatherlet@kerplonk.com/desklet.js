@@ -29,8 +29,9 @@ imports.searchPath.push(DESKLET_DIR);
 let Decoder = typeof require !== "undefined" ? require("./decoder.js") : imports.ui.deskletManager.desklets[uuid].decoder;
 
 var session;
-if (Soup.MAJOR_VERSION === 2) {
+if (Soup.MAJOR_VERSION === undefined || Soup.MAJOR_VERSION === 2) {
     session = new Soup.SessionAsync();
+    Soup.Session.prototype.add_feature.call(session, new Soup.ProxyResolverDefault());
 } else {
     session = new Soup.Session();
 }
@@ -300,6 +301,41 @@ Weatherlet.prototype = {
      **/
     _getWeatherData: function () {
         var message = Soup.Message.new('GET', this.url);
+
+        session.timeout = 10;
+        session.idle_timeout = 10;
+
+        if (Soup.MAJOR_VERSION === undefined || Soup.MAJOR_VERSION === 2) {
+            session.queue_message(message, function (localSession, message) {
+              if (message.status_code == 200) {
+                try {
+                    // this._parseMessage(localSession, message);
+                    this._parseData(message.response_body.data.toString());
+                } catch (e) {
+                    _log('Caught exception handling send_and_receive: ' + e);
+                }
+              } else {
+                _log('Error retrieving address ' + this.url + '. Status: ' + message.status_code + ': ' + message.reason_phrase);
+              }
+            });
+          } else { // Soup 3.0
+            session.send_and_read_async(message, Soup.MessagePriority.NORMAL, null, function (localSession, result) {
+              if (message.get_status() === 200) {
+                try {
+                  const bytes = session.send_and_read_finish(result);
+                  this._parseData(ByteArray.toString(bytes.get_data()));
+                } catch (e) {
+                    _log('Caught exception handling send_and_receive: ' + e);
+                }
+              } else {
+                _log('Error retrieving address ' + this.url + '. Status: ' + message.status_code + ': ' + message.reason_phrase);
+              }
+            });
+          }
+      
+        
+        /****************************************************************************************** */
+        /*** OLD
         if (Soup.MAJOR_VERSION === 2) {
             session.queue_message(message, Lang.bind(this, this._parseMessage));
         } else {
@@ -317,6 +353,7 @@ Weatherlet.prototype = {
        
             }));
         }
+        */
     },
 
     /**
