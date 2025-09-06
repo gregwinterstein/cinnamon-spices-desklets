@@ -28,12 +28,12 @@ const DESKLET_DIR = imports.ui.deskletManager.deskletMeta[uuid].path;
 imports.searchPath.push(DESKLET_DIR);
 let Decoder = typeof require !== "undefined" ? require("./decoder.js") : imports.ui.deskletManager.desklets[uuid].decoder;
 
-var session;
+var _httpSession;
 if (Soup.MAJOR_VERSION === undefined || Soup.MAJOR_VERSION === 2) {
-    session = new Soup.SessionAsync();
-    Soup.Session.prototype.add_feature.call(session, new Soup.ProxyResolverDefault());
-} else {
-    session = new Soup.Session();
+    _httpSession = new Soup.SessionAsync();
+    Soup.Session.prototype.add_feature.call(_httpSession, new Soup.ProxyResolverDefault());
+} else { // version 3
+    _httpSession = new Soup.Session();
 }
   
 
@@ -302,15 +302,15 @@ Weatherlet.prototype = {
     _getWeatherData: function () {
         var message = Soup.Message.new('GET', this.url);
 
-        session.timeout = 10;
-        session.idle_timeout = 10;
+        _httpSession.timeout = 15;
+        _httpSession.idle_timeout = 15;
 
         if (Soup.MAJOR_VERSION === undefined || Soup.MAJOR_VERSION === 2) {
-            session.queue_message(message, function (localSession, message) {
+            _httpSession.queue_message(message, function (localSession, message) {
               if (message.status_code == 200) {
                 try {
                     // this._parseMessage(localSession, message);
-                    this._parseData(message.response_body.data.toString());
+                    this._parseMessage(message.response_body.data.toString());
                 } catch (e) {
                     _log('Caught exception handling send_and_receive: ' + e);
                 }
@@ -319,49 +319,31 @@ Weatherlet.prototype = {
               }
             });
           } else { // Soup 3.0
-            session.send_and_read_async(message, Soup.MessagePriority.NORMAL, null, function (localSession, result) {
-              if (message.get_status() === 200) {
+            _httpSession.send_and_read_async(message, Soup.MessagePriority.NORMAL, null, Lang.bind(this, function (localSession, result) {
                 try {
-                  const bytes = session.send_and_read_finish(result);
-                  this._parseData(ByteArray.toString(bytes.get_data()));
-                } catch (e) {
-                    _log('Caught exception handling send_and_receive: ' + e);
-                }
-              } else {
-                _log('Error retrieving address ' + this.url + '. Status: ' + message.status_code + ': ' + message.reason_phrase);
-              }
-            });
-          }
-      
-        
-        /****************************************************************************************** */
-        /*** OLD
-        if (Soup.MAJOR_VERSION === 2) {
-            session.queue_message(message, Lang.bind(this, this._parseMessage));
-        } else {
-            session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, Lang.bind(this, function(session, response) {
-                try {
-                    var bytes = session.send_and_read_finish(response);
                     if (message.get_status() === 200) {
-                        this._parseData(ByteArray.toString(bytes.get_data()));
+                        try {
+                            const bytes = _httpSession.send_and_read_finish(result);
+                            this._parseData(ByteArray.toString(bytes.get_data()));
+                        } catch (e) {
+                            _log('Caught exception parsing data: ' + e);
+                        }
                     } else {
-                        _log("Weather request failed with status: " + message.get_status());
+                        _log('Error retrieving address ' + this.url + '. Status: ' + message.status_code + ': ' + message.reason_phrase);
                     }
-                  } catch (e) {
-                    _log('Caught exception handling send_and_receive: ' + e);
-                  }
-       
+                } catch (e) {
+                    _log('Outer Error retrieving address ' + this.url + '. Status: ' + message.status_code + ': ' + message.reason_phrase);    
+                }
             }));
-        }
-        */
+          }
     },
 
     /**
      * Callback for _getWeatherData to parse data and update display to handle older Soup
-     * @param {*} session Global session object (not used, but part of callback signature)
+     * @param {*} _httpSession Global _httpSession object (not used, but part of callback signature)
      * @param {*} message Response to this.url
      */
-    _parseMessage: function (session, message) {
+    _parseMessage: function (_httpSession, message) {
         if (message.status_code === 200) {
             this._parseData(message.response_body.data.toString());
         } else {
@@ -374,10 +356,10 @@ Weatherlet.prototype = {
      * @param {*} data Data to parse for values based on this.measureData
      */
     _parseData: function (data) {
-        this.weatherData = data;
+        // this.weatherData = data;
 
-        if (this.weatherData !== null) {
-            if (this._matchRegexValue(this.offlinePattern, this.weatherData)) {
+        if (data !== null) {
+            if (this._matchRegexValue(this.offlinePattern, data)) {
                 _log('_parseData: ' + this.url + ' is Offline');
                 if (this.showHeader) {
                     this._header.labels.header.set_text(this._headerText + ": Offline");
@@ -389,12 +371,12 @@ Weatherlet.prototype = {
 
                 for (let measure of this.measureData) {
                     if (!measure.isSeparator && measure.regex !== undefined && measure.regex !== null && measure.regex !== '') {
-                        let result = Decoder.replaceHtmlEntities(this._getRegexValue(measure.regex, this.weatherData));
+                        let result = Decoder.replaceHtmlEntities(this._getRegexValue(measure.regex, data));
                         measure.labels.label.set_text(measure.label);
                         measure.labels.result.set_text(result === null ? '' : result);
                     }
                 }
-                this._setFooter(this.weatherData);
+                this._setFooter(data);
             }
         } else {
             _log('_parseData: Setting Offline');
